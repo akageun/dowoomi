@@ -13,19 +13,19 @@ import org.springframework.http.ResponseEntity
  * @since 2025-07-11
  */
 data class ApiResponse<T>(
-    @JsonProperty("message")
+  @get:JsonProperty("message")
     val message: String,
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonProperty("result")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @get:JsonProperty("result")
     val result: T? = null,
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonProperty("error")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @get:JsonProperty("error")
     val error: ErrorType? = null,
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonProperty("timestamp")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @get:JsonProperty("timestamp")
     val timestamp: Long = System.currentTimeMillis()
 ) {
     companion object {

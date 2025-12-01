@@ -7,9 +7,9 @@ import kotlin.collections.find
  * 에러 타입 열거형
  */
 enum class ErrorType(
-    @JsonProperty("code")
+  @get:JsonProperty("code")
     val code: String,
-    @JsonProperty("message")
+  @get:JsonProperty("message")
     val message: String
 ) {
     // 일반적인 에러

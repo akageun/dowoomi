@@ -1,0 +1,270 @@
+.task-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.view-toggle {
+  display: flex;
+  background: #f1f3f4;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.view-btn:hover {
+  color: #333;
+}
+
+.view-btn.active {
+  background: white;
+  color: #1976d2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.task-filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  border-color: #1976d2;
+  color: #1976d2;
+}
+
+.filter-btn.active {
+  background-color: #1976d2;
+  border-color: #1976d2;
+  color: white;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.no-tasks {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+  background: white;
+  border-radius: 8px;
+}
+
+.task-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #1976d2;
+  transition: all 0.2s;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.task-card.lifecycle-draft {
+  border-left-style: dashed;
+  opacity: 0.7;
+}
+
+.task-card.lifecycle-deleted {
+  opacity: 0.5;
+}
+
+.task-card.lifecycle-deleted .task-title {
+  text-decoration: line-through;
+}
+
+.task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.task-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  text-decoration: none;
+}
+
+.task-title:hover {
+  color: #1976d2;
+}
+
+.task-description {
+  color: #666;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Chips */
+.task-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.chip-category {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.chip-parent {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.chip-dependency {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.chip-assignee {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Meta info */
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.meta-label {
+  color: #888;
+}
+
+.meta-value {
+  color: #333;
+  font-weight: 500;
+}
+
+.meta-focus {
+  background: #fff8e1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.meta-focus .meta-value {
+  color: #f57c00;
+}
+
+.task-tags {
+  margin-bottom: 0.75rem;
+}
+
+/* Assignees */
+.task-assignees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.assignee-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  background: #f1f3f4;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+/* Links */
+.task-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.link-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  background: #e8eaf6;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #3949ab;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.link-item:hover {
+  background: #c5cae9;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+
+.progress-select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
