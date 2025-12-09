@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 @Transactional
 class CategoryService(
-    private val categoryRepository: CategoryRepository
+    private val categoryMapper: CategoryMapper
 ) {
     companion object : LoggerUtil()
 
@@ -20,7 +20,7 @@ class CategoryService(
     fun createCategory(name: String, description: String? = null): CategoryEntity {
         logger.info("Creating category: $name")
 
-        if (categoryRepository.existsByName(name)) {
+        if (categoryMapper.existsByName(name)) {
             throw IllegalArgumentException("Category already exists: $name")
         }
 
@@ -28,7 +28,8 @@ class CategoryService(
             name = name,
             description = description
         )
-        return categoryRepository.save(category)
+        categoryMapper.insert(category)
+        return category.copy(id = categoryMapper.lastInsertId())
     }
 
     /**
@@ -37,7 +38,7 @@ class CategoryService(
     @Transactional(readOnly = true)
     fun findAll(): List<CategoryEntity> {
         logger.info("Fetching all categories")
-        return categoryRepository.findAll()
+        return categoryMapper.findAll()
     }
 
     /**
@@ -45,7 +46,7 @@ class CategoryService(
      */
     @Transactional(readOnly = true)
     fun findById(id: Long): CategoryEntity? {
-        return categoryRepository.findById(id).orElse(null)
+        return categoryMapper.findById(id)
     }
 
     /**
@@ -53,7 +54,7 @@ class CategoryService(
      */
     @Transactional(readOnly = true)
     fun findByName(name: String): CategoryEntity? {
-        return categoryRepository.findByName(name)
+        return categoryMapper.findByName(name)
     }
 
     /**
@@ -62,18 +63,19 @@ class CategoryService(
     fun updateCategory(id: Long, name: String?, description: String?): CategoryEntity {
         logger.info("Updating category: id=$id")
 
-        val category = categoryRepository.findById(id)
-            .orElseThrow { IllegalArgumentException("Category not found: $id") }
+        val category = categoryMapper.findById(id)
+            ?: throw IllegalArgumentException("Category not found: $id")
 
         name?.let {
-            if (it != category.name && categoryRepository.existsByName(it)) {
+            if (it != category.name && categoryMapper.existsByName(it)) {
                 throw IllegalArgumentException("Category name already exists: $it")
             }
             category.name = it
         }
         description?.let { category.description = it }
 
-        return categoryRepository.save(category)
+        categoryMapper.update(category)
+        return category
     }
 
     /**
@@ -82,10 +84,10 @@ class CategoryService(
     fun deleteCategory(id: Long) {
         logger.info("Deleting category: $id")
 
-        if (!categoryRepository.existsById(id)) {
+        if (!categoryMapper.existsById(id)) {
             throw IllegalArgumentException("Category not found: $id")
         }
 
-        categoryRepository.deleteById(id)
+        categoryMapper.deleteById(id)
     }
 }

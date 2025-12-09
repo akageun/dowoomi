@@ -1,28 +1,32 @@
 package kr.geun.oss.dowoomi.domain.tag
 
-import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.stereotype.Repository
+import org.apache.ibatis.annotations.Mapper
+import org.apache.ibatis.annotations.Param
 
-@Repository
-interface TagRepository : JpaRepository<TagEntity, Long> {
+@Mapper
+interface TagRepository {
 
-    /**
-     * 이름으로 태그 조회
-     */
-    fun findByName(name: String): TagEntity?
+    fun findById(@Param("id") id: Long): TagEntity?
 
-    /**
-     * 이름으로 태그 존재 여부 확인
-     */
-    fun existsByName(name: String): Boolean
+    fun findAll(): List<TagEntity>
 
-    /**
-     * 여러 이름으로 태그 조회
-     */
-    fun findByNameIn(names: List<String>): List<TagEntity>
+    fun findAllByIds(@Param("ids") ids: List<Long>): List<TagEntity>
 
-    /**
-     * 이름에 포함된 태그 조회
-     */
-    fun findByNameContainingIgnoreCase(name: String): List<TagEntity>
+    fun existsById(@Param("id") id: Long): Boolean
+
+    fun insert(tag: TagEntity): Int
+
+    fun update(tag: TagEntity): Int
+
+    fun deleteById(@Param("id") id: Long): Int
+
+    fun findByName(@Param("name") name: String): TagEntity?
+
+    fun existsByName(@Param("name") name: String): Boolean
+
+    fun findByNameIn(@Param("names") names: List<String>): List<TagEntity>
+
+    fun findByNameContaining(@Param("name") name: String): List<TagEntity>
+
+    fun lastInsertId(): Long
 }

@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { taskApi } from '../api/taskApi';
-import type { Task, TaskProgress, CreateTaskRequest } from '../types/task';
+import type { Task, TaskProgress } from '../types/task';
 import { progressLabels } from '../types/task';
-import TaskCreateModal from '../components/TaskCreateModal';
 import GanttChart from '../components/GanttChart';
 import './TaskPage.css';
 
@@ -14,7 +13,6 @@ function TaskPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | TaskProgress>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const fetchTasks = useCallback(async () => {
@@ -51,17 +49,6 @@ function TaskPage() {
       await fetchTasks();
     } catch (err) {
       console.error('Failed to delete task:', err);
-    }
-  };
-
-  const handleCreateTask = async (data: CreateTaskRequest) => {
-    try {
-      await taskApi.createTask(data);
-      await fetchTasks();
-      setShowCreateModal(false);
-    } catch (err) {
-      console.error('Failed to create task:', err);
-      throw err;
     }
   };
 
@@ -110,9 +97,9 @@ function TaskPage() {
               📊 간트
             </button>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+          <Link to="/tasks/new" className="btn btn-primary">
             + 새 Task
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -172,8 +159,8 @@ function TaskPage() {
                     {task.categoryName && (
                       <span className="chip chip-category">📁 {task.categoryName}</span>
                     )}
-                    {task.parent && (
-                      <span className="chip chip-parent">👆 {task.parent.taskTitle}</span>
+                    {task.parents && task.parents.length > 0 && (
+                      <span className="chip chip-parent">👆 상위 {task.parents.length}개</span>
                     )}
                     {task.dependencies && task.dependencies.length > 0 && (
                       <span className="chip chip-dependency">🔗 {task.dependencies.length}개 의존성</span>
@@ -258,12 +245,6 @@ function TaskPage() {
         </>
       )}
 
-      {showCreateModal && (
-        <TaskCreateModal
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateTask}
-        />
-      )}
     </div>
   );
 }

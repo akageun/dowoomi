@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.geun.oss.dowoomi.domain.task.link.TaskLinkRepository">
+
+    <resultMap id="TaskLinkResultMap" type="kr.geun.oss.dowoomi.domain.task.link.TaskLinkEntity">
+        <id property="id" column="id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="url" column="url"/>
+    </resultMap>
+
+    <select id="findById" resultMap="TaskLinkResultMap">
+        SELECT * FROM task_links WHERE id = #{id}
+    </select>
+
+    <select id="findByTaskId" resultMap="TaskLinkResultMap">
+        SELECT * FROM task_links WHERE task_id = #{taskId}
+    </select>
+
+    <insert id="insert" parameterType="kr.geun.oss.dowoomi.domain.task.link.TaskLinkEntity">
+        INSERT INTO task_links (task_id, name, description, url)
+        VALUES (#{taskId}, #{name}, #{description}, #{url})
+    </insert>
+
+    <delete id="deleteByTaskId">
+        DELETE FROM task_links WHERE task_id = #{taskId}
+    </delete>
+
+    <delete id="deleteByTaskIdAndId">
+        DELETE FROM task_links WHERE task_id = #{taskId} AND id = #{id}
+    </delete>
+
+    <select id="lastInsertId" resultType="long">
+        SELECT last_insert_rowid()
+    </select>
+
+</mapper>

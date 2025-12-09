@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.geun.oss.dowoomi.domain.task.TaskRepository">
+
+    <resultMap id="TaskResultMap" type="kr.geun.oss.dowoomi.domain.task.TasksEntity">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="statusProgress" column="status_progress"/>
+        <result property="statusLifecycle" column="status_lifecycle"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="TaskResultMap">
+        SELECT * FROM tasks WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="TaskResultMap">
+        SELECT * FROM tasks ORDER BY created_at DESC
+    </select>
+
+    <select id="findAllByIds" resultMap="TaskResultMap">
+        SELECT * FROM tasks WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="existsById" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM tasks WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="kr.geun.oss.dowoomi.domain.task.TasksEntity">
+        INSERT INTO tasks (title, description, category_id, status_progress, status_lifecycle, start_date, end_date, created_at, updated_at)
+        VALUES (#{title}, #{description}, #{categoryId}, #{statusProgress}, #{statusLifecycle}, #{startDate}, #{endDate}, datetime('now'), datetime('now'))
+    </insert>
+
+    <update id="update" parameterType="kr.geun.oss.dowoomi.domain.task.TasksEntity">
+        UPDATE tasks SET
+            title = #{title},
+            description = #{description},
+            category_id = #{categoryId},
+            status_progress = #{statusProgress},
+            status_lifecycle = #{statusLifecycle},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            updated_at = datetime('now')
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tasks WHERE id = #{id}
+    </delete>
+
+    <select id="findByStatusLifecycle" resultMap="TaskResultMap">
+        SELECT * FROM tasks WHERE status_lifecycle = #{lifecycle} ORDER BY created_at DESC
+    </select>
+
+    <select id="findByStatusProgress" resultMap="TaskResultMap">
+        SELECT * FROM tasks WHERE status_progress = #{progress} ORDER BY created_at DESC
+    </select>
+
+    <select id="findByCategoryId" resultMap="TaskResultMap">
+        SELECT * FROM tasks WHERE category_id = #{categoryId} ORDER BY created_at DESC
+    </select>
+
+    <select id="findByStartDateBetween" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE start_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY start_date, id
+    </select>
+
+    <select id="findByYearMonth" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE strftime('%Y-%m', start_date) = #{yearMonth}
+        AND status_lifecycle != 'deleted'
+        ORDER BY start_date, id
+    </select>
+
+    <select id="findAllActiveTasks" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE status_lifecycle = 'active'
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findCompletedThisWeek" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE status_progress = 'done'
+        AND status_lifecycle = 'active'
+        AND date(updated_at) >= date('now', 'weekday 0', '-7 days')
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findUpcomingDeadlines" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE end_date IS NOT NULL
+        AND date(end_date) BETWEEN date('now') AND date('now', '+' || #{days} || ' days')
+        AND status_lifecycle = 'active'
+        AND status_progress != 'done'
+        ORDER BY end_date ASC
+    </select>
+
+    <select id="findOverdueTasks" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE end_date IS NOT NULL
+        AND date(end_date) &lt; date('now')
+        AND status_lifecycle = 'active'
+        AND status_progress != 'done'
+        ORDER BY end_date ASC
+    </select>
+
+    <select id="findTodayFocusTasks" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE status_lifecycle = 'active'
+        AND status_progress = 'in_progress'
+        AND (start_date IS NULL OR date(start_date) &lt;= date('now'))
+        AND (end_date IS NULL OR date(end_date) >= date('now'))
+        ORDER BY end_date ASC NULLS LAST, created_at ASC
+    </select>
+
+    <select id="findReadyToStartTasks" resultMap="TaskResultMap">
+        SELECT t.* FROM tasks t
+        WHERE t.status_lifecycle = 'active'
+        AND t.status_progress = 'todo'
+        AND NOT EXISTS (
+            SELECT 1 FROM task_dependencies td
+            JOIN tasks dep ON td.dependency_task_id = dep.id
+            WHERE td.task_id = t.id
+            AND dep.status_progress != 'done'
+        )
+        ORDER BY t.start_date ASC NULLS LAST, t.created_at ASC
+    </select>
+
+    <select id="searchByTitle" resultMap="TaskResultMap">
+        SELECT * FROM tasks
+        WHERE status_lifecycle != 'deleted'
+        AND title LIKE '%' || #{keyword} || '%'
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="lastInsertId" resultType="long">
+        SELECT last_insert_rowid()
+    </select>
+
+</mapper>

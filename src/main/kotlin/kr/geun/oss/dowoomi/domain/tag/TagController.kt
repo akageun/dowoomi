@@ -1,5 +1,6 @@
 package kr.geun.oss.dowoomi.domain.tag
 
+import kr.geun.oss.dowoomi.common.exception.ResourceNotFoundException
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -24,7 +25,7 @@ class TagController(
     @GetMapping("/{id}")
     fun getTagById(@PathVariable id: Long): ResponseEntity<TagResponse> {
         val tag = tagService.findById(id)
-            ?: return ResponseEntity.notFound().build()
+            ?: throw ResourceNotFoundException("태그", id)
         return ResponseEntity.ok(tag.toResponse())
     }
 
@@ -34,7 +35,7 @@ class TagController(
     @GetMapping("/name/{name}")
     fun getTagByName(@PathVariable name: String): ResponseEntity<TagResponse> {
         val tag = tagService.findByName(name)
-            ?: return ResponseEntity.notFound().build()
+            ?: throw ResourceNotFoundException("태그", name)
         return ResponseEntity.ok(tag.toResponse())
     }
 
@@ -74,7 +75,7 @@ class TagController(
         @RequestBody request: UpdateTagRequest
     ): ResponseEntity<TagResponse> {
         val tag = tagService.update(id, request.name)
-            ?: return ResponseEntity.notFound().build()
+            ?: throw ResourceNotFoundException("태그", id)
         return ResponseEntity.ok(tag.toResponse())
     }
 
@@ -83,11 +84,10 @@ class TagController(
      */
     @DeleteMapping("/{id}")
     fun deleteTag(@PathVariable id: Long): ResponseEntity<Void> {
-        return if (tagService.delete(id)) {
-            ResponseEntity.noContent().build()
-        } else {
-            ResponseEntity.notFound().build()
+        if (!tagService.delete(id)) {
+            throw ResourceNotFoundException("태그", id)
         }
+        return ResponseEntity.noContent().build()
     }
 
     /**

@@ -83,6 +83,17 @@ CREATE TABLE IF NOT EXISTS members (
 
 CREATE INDEX IF NOT EXISTS idx_members_name ON members(name);
 
+-- 담당자(Assignee) 테이블: assignees
+CREATE TABLE IF NOT EXISTS assignees (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    memo       TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_assignees_name ON assignees(name);
+
 -- Task ↔ Member 매핑: task_assignees
 CREATE TABLE IF NOT EXISTS task_assignees (
     task_id   INTEGER NOT NULL,  -- tasks.id

@@ -28,7 +28,7 @@ class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException::class)
     fun handleBusinessException(e: BusinessException): ResponseEntity<ApiResponse<Unit>> {
-        log.warn("BusinessException: {}", e.message)
+        log.warn("BusinessException [{}]: {}", e.errorType.code, e.message)
         return ApiResponse.error<Unit>(e.errorType, e.message ?: e.errorType.message)
             .toResponseEntity(e.httpStatus)
     }
@@ -41,6 +41,46 @@ class GlobalExceptionHandler {
         log.warn("ResourceNotFoundException: {}", e.message)
         return ApiResponse.error<Unit>(ErrorType.NOT_FOUND, e.message ?: "리소스를 찾을 수 없습니다.")
             .toResponseEntity(HttpStatus.NOT_FOUND)
+    }
+
+    /**
+     * 중복 리소스 예외 처리
+     */
+    @ExceptionHandler(DuplicateResourceException::class)
+    fun handleDuplicateResourceException(e: DuplicateResourceException): ResponseEntity<ApiResponse<Unit>> {
+        log.warn("DuplicateResourceException: {}", e.message)
+        return ApiResponse.error<Unit>(e.errorType, e.message ?: "이미 존재하는 리소스입니다.")
+            .toResponseEntity(HttpStatus.CONFLICT)
+    }
+
+    /**
+     * 인증 실패 예외 처리
+     */
+    @ExceptionHandler(UnauthorizedException::class)
+    fun handleUnauthorizedException(e: UnauthorizedException): ResponseEntity<ApiResponse<Unit>> {
+        log.warn("UnauthorizedException: {}", e.message)
+        return ApiResponse.error<Unit>(ErrorType.UNAUTHORIZED, e.message ?: "인증이 필요합니다.")
+            .toResponseEntity(HttpStatus.UNAUTHORIZED)
+    }
+
+    /**
+     * 권한 없음 예외 처리
+     */
+    @ExceptionHandler(ForbiddenException::class)
+    fun handleForbiddenException(e: ForbiddenException): ResponseEntity<ApiResponse<Unit>> {
+        log.warn("ForbiddenException: {}", e.message)
+        return ApiResponse.error<Unit>(ErrorType.FORBIDDEN, e.message ?: "접근 권한이 없습니다.")
+            .toResponseEntity(HttpStatus.FORBIDDEN)
+    }
+
+    /**
+     * 잘못된 요청 예외 처리
+     */
+    @ExceptionHandler(BadRequestException::class)
+    fun handleBadRequestException(e: BadRequestException): ResponseEntity<ApiResponse<Unit>> {
+        log.warn("BadRequestException: {}", e.message)
+        return ApiResponse.error<Unit>(ErrorType.INVALID_REQUEST, e.message ?: "잘못된 요청입니다.")
+            .toResponseEntity(HttpStatus.BAD_REQUEST)
     }
 
     /**
@@ -130,7 +170,7 @@ class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception::class)
     fun handleException(e: Exception): ResponseEntity<ApiResponse<Unit>> {
-        log.error("Unexpected error occurred", e)
+        log.error("Unexpected error occurred: {}", e.message, e)
         return ApiResponse.error<Unit>(ErrorType.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.")
             .toResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
     }

@@ -8,7 +8,7 @@ import type {
   AddAssigneeRequest,
   AddLinkRequest,
   AddDependencyRequest,
-  SetParentRequest,
+  AddParentRequest,
 } from '../types/task';
 
 const API_BASE = '/api/tasks';
@@ -93,6 +93,16 @@ export const taskApi = {
    */
   getCompletedThisWeek: async (): Promise<Task[]> => {
     const response = await axios.get<Task[]>(`${API_BASE}/completed-this-week`);
+    return response.data;
+  },
+
+  /**
+   * 제목으로 Task 검색 (LIKE 검색)
+   */
+  searchTasks: async (keyword: string, limit: number = 20): Promise<Task[]> => {
+    const response = await axios.get<Task[]>(`${API_BASE}/search`, {
+      params: { keyword, limit }
+    });
     return response.data;
   },
 
@@ -208,21 +218,39 @@ export const taskApi = {
     return response.data;
   },
 
-  // ========== 부모 Task API ==========
+  // ========== 부모 Task API (여러 개 지원) ==========
 
   /**
-   * 부모 Task 설정
+   * 부모 Task 추가
    */
-  setParent: async (id: number, data: SetParentRequest): Promise<Task> => {
+  addParent: async (id: number, data: AddParentRequest): Promise<Task> => {
     const response = await axios.post<Task>(`${API_BASE}/${id}/parent`, data);
     return response.data;
   },
 
   /**
-   * 부모 Task 제거
+   * 특정 부모 Task 제거
    */
-  removeParent: async (id: number): Promise<Task> => {
-    const response = await axios.delete<Task>(`${API_BASE}/${id}/parent`);
+  removeParent: async (id: number, parentId: number): Promise<Task> => {
+    const response = await axios.delete<Task>(`${API_BASE}/${id}/parent/${parentId}`);
+    return response.data;
+  },
+
+  /**
+   * 모든 부모 Task 제거
+   */
+  removeAllParents: async (id: number): Promise<Task> => {
+    const response = await axios.delete<Task>(`${API_BASE}/${id}/parents`);
+    return response.data;
+  },
+
+  // ========== 레거시 호환용 (기존 코드 지원) ==========
+  
+  /**
+   * @deprecated addParent 사용 권장
+   */
+  setParent: async (id: number, data: AddParentRequest): Promise<Task> => {
+    const response = await axios.post<Task>(`${API_BASE}/${id}/parent`, data);
     return response.data;
   },
 };

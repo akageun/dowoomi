@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.geun.oss.dowoomi.domain.tag.TagRepository">
+
+    <resultMap id="TagResultMap" type="kr.geun.oss.dowoomi.domain.tag.TagEntity">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="TagResultMap">
+        SELECT * FROM tags ORDER BY name
+    </select>
+
+    <select id="findAllByIds" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="existsById" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM tags WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="kr.geun.oss.dowoomi.domain.tag.TagEntity">
+        INSERT INTO tags (name, created_at)
+        VALUES (#{name}, datetime('now'))
+    </insert>
+
+    <update id="update" parameterType="kr.geun.oss.dowoomi.domain.tag.TagEntity">
+        UPDATE tags SET name = #{name} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tags WHERE id = #{id}
+    </delete>
+
+    <select id="findByName" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE name = #{name}
+    </select>
+
+    <select id="existsByName" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM tags WHERE name = #{name}
+    </select>
+
+    <select id="findByNameIn" resultMap="TagResultMap">
+        SELECT * FROM tags WHERE name IN
+        <foreach collection="names" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
+
+    <select id="findByNameContaining" resultMap="TagResultMap">
+        SELECT * FROM tags
+        WHERE LOWER(name) LIKE '%' || LOWER(#{name}) || '%'
+        ORDER BY name
+    </select>
+
+    <select id="lastInsertId" resultType="long">
+        SELECT last_insert_rowid()
+    </select>
+
+</mapper>

@@ -17,7 +17,7 @@ class TagService(
     /**
      * ID로 태그 조회
      */
-    fun findById(id: Long): TagEntity? = tagRepository.findById(id).orElse(null)
+    fun findById(id: Long): TagEntity? = tagRepository.findById(id)
 
     /**
      * 이름으로 태그 조회
@@ -33,7 +33,7 @@ class TagService(
      * 이름에 포함된 문자열로 검색
      */
     fun search(keyword: String): List<TagEntity> = 
-        tagRepository.findByNameContainingIgnoreCase(keyword)
+        tagRepository.findByNameContaining(keyword)
 
     /**
      * 태그 생성
@@ -44,7 +44,9 @@ class TagService(
         if (tagRepository.existsByName(name)) {
             throw IllegalArgumentException("이미 존재하는 태그입니다: $name")
         }
-        return tagRepository.save(TagEntity(name = name))
+        val tag = TagEntity(name = name)
+        tagRepository.insert(tag)
+        return tag.copy(id = tagRepository.lastInsertId())
     }
 
     /**
@@ -52,8 +54,12 @@ class TagService(
      */
     @Transactional
     fun findOrCreate(name: String): TagEntity {
-        return tagRepository.findByName(name)
-            ?: tagRepository.save(TagEntity(name = name))
+        val existing = tagRepository.findByName(name)
+        if (existing != null) return existing
+        
+        val tag = TagEntity(name = name)
+        tagRepository.insert(tag)
+        return tag.copy(id = tagRepository.lastInsertId())
     }
 
     /**
@@ -70,7 +76,8 @@ class TagService(
         }
         
         tag.name = name
-        return tagRepository.save(tag)
+        tagRepository.update(tag)
+        return tag
     }
 
     /**

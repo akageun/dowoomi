@@ -1,37 +1,9 @@
 package kr.geun.oss.dowoomi.domain.task.dependency
 
-import jakarta.persistence.*
-import kr.geun.oss.dowoomi.domain.task.TasksEntity
-import java.io.Serializable
-
 /**
- * Task 선행 작업(의존성) 엔티티 (self-reference N:N)
- * dependencies: string[]
+ * Task 선행 작업(의존성) 데이터 클래스 (self-reference N:N)
  */
-@Entity
-@Table(
-    name = "task_dependencies",
-    indexes = [
-        Index(name = "idx_task_deps_dependency", columnList = "dependency_task_id")
-    ]
+data class TaskDependencyEntity(
+    val taskId: Long,
+    val dependencyTaskId: Long
 )
-@IdClass(TaskDependencyId::class)
-class TaskDependencyEntity(
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id", nullable = false)
-    var task: TasksEntity,
-
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dependency_task_id", nullable = false)
-    var dependencyTask: TasksEntity
-)
-
-/**
- * 복합키 클래스
- */
-data class TaskDependencyId(
-    val task: Long? = null,
-    val dependencyTask: Long? = null
-) : Serializable

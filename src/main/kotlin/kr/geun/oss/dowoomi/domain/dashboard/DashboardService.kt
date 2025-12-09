@@ -1,9 +1,10 @@
 package kr.geun.oss.dowoomi.domain.dashboard
 
-import kr.geun.oss.dowoomi.domain.category.CategoryRepository
+import kr.geun.oss.dowoomi.domain.category.CategoryMapper
 import kr.geun.oss.dowoomi.domain.task.TaskLifecycle
 import kr.geun.oss.dowoomi.domain.task.TaskProgress
 import kr.geun.oss.dowoomi.domain.task.TaskRepository
+import kr.geun.oss.dowoomi.domain.task.TasksEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -11,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(readOnly = true)
 class DashboardService(
     private val taskRepository: TaskRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryMapper: CategoryMapper
 ) {
 
     /**
@@ -19,7 +20,7 @@ class DashboardService(
      */
     fun getDashboardStats(): DashboardStats {
         val activeTasks = taskRepository.findByStatusLifecycle(TaskLifecycle.ACTIVE.value)
-        
+
         val progressStats = ProgressStats(
             todo = activeTasks.count { it.statusProgress == TaskProgress.TODO.value },
             inProgress = activeTasks.count { it.statusProgress == TaskProgress.IN_PROGRESS.value },
@@ -53,14 +54,15 @@ class DashboardService(
      * 카테고리별 통계
      */
     fun getCategoryStats(): List<CategoryStats> {
-        val categories = categoryRepository.findAll()
-        
-        return categories.map { category ->
-            val tasks = taskRepository.findByCategoryId(category.id!!)
+        val categories = categoryMapper.findAll()
+
+        return categories.mapNotNull { category ->
+            val categoryId = category.id ?: return@mapNotNull null
+            val tasks = taskRepository.findByCategoryId(categoryId)
             val activeTasks = tasks.filter { it.statusLifecycle == TaskLifecycle.ACTIVE.value }
-            
+
             CategoryStats(
-                categoryId = category.id,
+                categoryId = categoryId,
                 categoryName = category.name,
                 totalTasks = activeTasks.size,
                 todoCount = activeTasks.count { it.statusProgress == TaskProgress.TODO.value },
@@ -68,6 +70,13 @@ class DashboardService(
                 doneCount = activeTasks.count { it.statusProgress == TaskProgress.DONE.value }
             )
         }
+    }
+
+    /**
+     * 카테고리명 조회 헬퍼
+     */
+    private fun getCategoryName(categoryId: Long?): String? {
+        return categoryId?.let { categoryMapper.findById(it)?.name }
     }
 
     /**
@@ -84,6 +93,17 @@ class DashboardService(
             overdue = overdueTasks.map { it.toSimpleTaskInfo() }
         )
     }
+
+    /**
+     * Entity to SimpleTaskInfo 변환
+     */
+    private fun TasksEntity.toSimpleTaskInfo() = SimpleTaskInfo(
+        id = this.id!!,
+        title = this.title,
+        progress = this.statusProgress,
+        categoryName = getCategoryName(this.categoryId),
+        endDate = this.endDate?.toString()
+    )
 }
 
 // ========== DTOs ==========
@@ -131,13 +151,4 @@ data class SimpleTaskInfo(
     val progress: String,
     val categoryName: String?,
     val endDate: String?
-)
-
-// Extension function
-fun kr.geun.oss.dowoomi.domain.task.TasksEntity.toSimpleTaskInfo() = SimpleTaskInfo(
-    id = this.id!!,
-    title = this.title,
-    progress = this.statusProgress,
-    categoryName = this.category?.name,
-    endDate = this.endDate?.toString()
 )

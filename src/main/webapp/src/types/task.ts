@@ -14,7 +14,7 @@ export interface Task {
   assignees: Assignee[];
   links: Link[];
   dependencies: Dependency[];
-  parent: Parent | null;
+  parents: Parent[];
   createdAt: string;
   updatedAt: string;
 }
@@ -96,7 +96,7 @@ export interface AddDependencyRequest {
   dependencyTaskId: number;
 }
 
-export interface SetParentRequest {
+export interface AddParentRequest {
   parentTaskId: number;
 }
 

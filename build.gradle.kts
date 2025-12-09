@@ -1,7 +1,6 @@
 plugins {
   kotlin("jvm") version "1.9.25"
   kotlin("plugin.spring") version "1.9.25"
-  kotlin("plugin.jpa") version "1.9.25"
   id("org.springframework.boot") version "3.5.8"
   id("io.spring.dependency-management") version "1.1.7"
 }
@@ -20,20 +19,14 @@ repositories {
   mavenCentral()
 }
 
-allOpen {
-  annotation("jakarta.persistence.Entity")
-  annotation("jakarta.persistence.MappedSuperclass")
-  annotation("jakarta.persistence.Embeddable")
-}
-
 dependencies {
   implementation("org.springframework.boot:spring-boot-starter-web")
-  implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+  implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4")
   implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
   implementation("org.jetbrains.kotlin:kotlin-reflect")
   implementation("org.xerial:sqlite-jdbc:3.47.1.0")
-  implementation("org.hibernate.orm:hibernate-community-dialects:6.6.4.Final")
   testImplementation("org.springframework.boot:spring-boot-starter-test")
+  testImplementation("org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

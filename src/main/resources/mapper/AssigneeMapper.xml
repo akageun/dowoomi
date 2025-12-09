@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.geun.oss.dowoomi.domain.assignee.AssigneeRepository">
+
+    <resultMap id="AssigneeResultMap" type="kr.geun.oss.dowoomi.domain.assignee.AssigneeEntity">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="memo" column="memo"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="AssigneeResultMap">
+        SELECT * FROM assignees WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="AssigneeResultMap">
+        SELECT * FROM assignees ORDER BY name
+    </select>
+
+    <select id="findAllByIds" resultMap="AssigneeResultMap">
+        SELECT * FROM assignees WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="existsById" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM assignees WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="kr.geun.oss.dowoomi.domain.assignee.AssigneeEntity">
+        INSERT INTO assignees (name, memo, created_at, updated_at)
+        VALUES (#{name}, #{memo}, datetime('now'), datetime('now'))
+    </insert>
+
+    <update id="update" parameterType="kr.geun.oss.dowoomi.domain.assignee.AssigneeEntity">
+        UPDATE assignees SET
+            name = #{name},
+            memo = #{memo},
+            updated_at = datetime('now')
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM assignees WHERE id = #{id}
+    </delete>
+
+    <select id="findByName" resultMap="AssigneeResultMap">
+        SELECT * FROM assignees WHERE name = #{name}
+    </select>
+
+    <select id="existsByName" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM assignees WHERE name = #{name}
+    </select>
+
+    <select id="findByNameContaining" resultMap="AssigneeResultMap">
+        SELECT * FROM assignees
+        WHERE LOWER(name) LIKE '%' || LOWER(#{name}) || '%'
+        ORDER BY name
+    </select>
+
+    <select id="lastInsertId" resultType="long">
+        SELECT last_insert_rowid()
+    </select>
+
+</mapper>

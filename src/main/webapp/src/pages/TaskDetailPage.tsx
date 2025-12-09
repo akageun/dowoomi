@@ -388,13 +388,17 @@ function TaskDetailPage() {
           </div>
         )}
 
-        {/* 부모 Task */}
-        {task.parent && (
+        {/* 부모 Tasks (여러 개) */}
+        {task.parents && task.parents.length > 0 && (
           <div className="task-section">
-            <h3>상위 작업</h3>
-            <Link to={`/tasks/${task.parent.taskId}`} className="parent-item">
-              📁 {task.parent.taskTitle}
-            </Link>
+            <h3>상위 작업 ({task.parents.length}개)</h3>
+            <div className="parent-list">
+              {task.parents.map((parent) => (
+                <Link key={parent.taskId} to={`/tasks/${parent.taskId}`} className="parent-item">
+                  👆 {parent.taskTitle}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>
