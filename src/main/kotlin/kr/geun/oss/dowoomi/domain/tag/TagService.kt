@@ -32,7 +32,7 @@ class TagService(
     /**
      * 이름에 포함된 문자열로 검색
      */
-    fun search(keyword: String): List<TagEntity> = 
+    fun search(keyword: String): List<TagEntity> =
         tagRepository.findByNameContaining(keyword)
 
     /**
@@ -56,7 +56,7 @@ class TagService(
     fun findOrCreate(name: String): TagEntity {
         val existing = tagRepository.findByName(name)
         if (existing != null) return existing
-        
+
         val tag = TagEntity(name = name)
         tagRepository.insert(tag)
         return tag.copy(id = tagRepository.lastInsertId())
@@ -68,13 +68,13 @@ class TagService(
     @Transactional
     fun update(id: Long, name: String): TagEntity? {
         val tag = findById(id) ?: return null
-        
+
         // 다른 태그와 이름 중복 체크
         val existingTag = tagRepository.findByName(name)
         if (existingTag != null && existingTag.id != id) {
             throw IllegalArgumentException("이미 존재하는 태그 이름입니다: $name")
         }
-        
+
         tag.name = name
         tagRepository.update(tag)
         return tag
@@ -87,6 +87,7 @@ class TagService(
     fun delete(id: Long): Boolean {
         if (!tagRepository.existsById(id)) return false
         tagRepository.deleteById(id)
+        //TODO Task Mapping 삭제 처리 필요
         return true
     }
 
@@ -94,4 +95,27 @@ class TagService(
      * 태그 존재 여부 확인
      */
     fun existsByName(name: String): Boolean = tagRepository.existsByName(name)
+
+    /**
+     * ID 목록으로 태그 조회 (목록 반환)
+     * 많은 수의 ID가 들어오면 100개씩 쪼개서 조회
+     */
+    fun findByIds(ids: List<Long>): List<TagEntity> {
+        if (ids.isEmpty()) return emptyList()
+
+        return ids.chunked(100)
+            .flatMap { chunk ->
+            tagRepository.findAllByIds(chunk)
+        }
+    }
+
+    /**
+     * ID 목록으로 태그 조회 (Map 반환)
+     * 많은 수의 ID가 들어오면 100개씩 쪼개서 조회
+     * @return Map<태그ID, TagEntity>
+     */
+    fun findByIdsAsMap(ids: List<Long>): Map<Long, TagEntity> {
+        return findByIds(ids)
+            .associateBy { it.id!! }
+    }
 }

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { taskApi } from '../api/taskApi';
+import { categoryApi, Category } from '../api/categoryApi';
+import { assigneeApi, Assignee } from '../api/assigneeApi';
+import { tagApi, Tag } from '../api/tagApi';
 import type { Task, CreateTaskRequest, TaskProgress, TaskLifecycle, CreateLinkRequest } from '../types/task';
 import './TaskCreatePage.css';
 
@@ -34,6 +37,13 @@ function TaskCreatePage() {
     links: [],
   });
   
+  // 선택 가능한 옵션 목록
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  
   // 입력 필드 상태
   const [tagInput, setTagInput] = useState('');
   const [assigneeInput, setAssigneeInput] = useState('');
@@ -62,6 +72,38 @@ function TaskCreatePage() {
   // 디바운스된 검색어
   const debouncedParentKeyword = useDebounce(parentSearchKeyword, 300);
   const debouncedDepKeyword = useDebounce(depSearchKeyword, 300);
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const [categoriesData, assigneesData, tagsData] = await Promise.all([
+          categoryApi.getAllCategories(),
+          assigneeApi.getAllAssignees(),
+          tagApi.getAllTags(),
+        ]);
+        setCategories(categoriesData);
+        setAssignees(assigneesData);
+        setTags(tagsData);
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+      }
+    };
+    loadInitialData();
+  }, []);
+
+  // 태그 검색 필터링
+  useEffect(() => {
+    if (tagInput.trim()) {
+      const filtered = tags.filter(tag => 
+        tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+        !form.tags?.includes(tag.name)
+      );
+      setFilteredTags(filtered);
+    } else {
+      setFilteredTags([]);
+    }
+  }, [tagInput, tags, form.tags]);
 
   // Parent Task 검색
   useEffect(() => {
@@ -139,13 +181,16 @@ function TaskCreatePage() {
     }
   };
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !form.tags?.includes(tagInput.trim())) {
+  const handleAddTag = (tagName?: string) => {
+    const tag = tagName || tagInput.trim();
+    if (tag && !form.tags?.includes(tag)) {
       setForm({
         ...form,
-        tags: [...(form.tags || []), tagInput.trim()],
+        tags: [...(form.tags || []), tag],
       });
       setTagInput('');
+      setShowTagDropdown(false);
+      setFilteredTags([]);
     }
   };
 
@@ -156,11 +201,12 @@ function TaskCreatePage() {
     });
   };
 
-  const handleAddAssignee = () => {
-    if (assigneeInput.trim() && !form.assignees?.includes(assigneeInput.trim())) {
+  const handleAddAssignee = (assigneeName?: string) => {
+    const name = assigneeName || assigneeInput.trim();
+    if (name && !form.assignees?.includes(name)) {
       setForm({
         ...form,
-        assignees: [...(form.assignees || []), assigneeInput.trim()],
+        assignees: [...(form.assignees || []), name],
       });
       setAssigneeInput('');
     }
@@ -265,6 +311,21 @@ function TaskCreatePage() {
               placeholder="Task에 대한 상세 설명을 입력하세요"
               rows={4}
             />
+          </div>
+
+          <div className="form-group">
+            <label>카테고리</label>
+            <select
+              value={form.categoryId || ''}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value ? Number(e.target.value) : undefined })}
+            >
+              <option value="">선택 안함</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-row">
@@ -490,12 +551,16 @@ function TaskCreatePage() {
           {/* 태그 */}
           <div className="form-group">
             <label>태그</label>
-            <div className="inline-input-wrapper">
+            <div className="search-input-wrapper">
               <input
                 type="text"
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="태그 입력 후 Enter"
+                onChange={(e) => {
+                  setTagInput(e.target.value);
+                  setShowTagDropdown(true);
+                }}
+                onFocus={() => setShowTagDropdown(true)}
+                placeholder="태그 검색 또는 새 태그 입력"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -503,9 +568,27 @@ function TaskCreatePage() {
                   }
                 }}
               />
-              <button type="button" className="btn btn-secondary" onClick={handleAddTag}>
-                추가
-              </button>
+              {showTagDropdown && (filteredTags.length > 0 || tagInput.trim()) && (
+                <div className="search-dropdown">
+                  {filteredTags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="search-dropdown-item"
+                      onClick={() => handleAddTag(tag.name)}
+                    >
+                      <span className="tag-name">🏷️ {tag.name}</span>
+                    </div>
+                  ))}
+                  {tagInput.trim() && !tags.find(t => t.name.toLowerCase() === tagInput.toLowerCase()) && (
+                    <div
+                      className="search-dropdown-item new-item"
+                      onClick={() => handleAddTag()}
+                    >
+                      <span className="tag-name">+ "새 태그: {tagInput}" 만들기</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {form.tags && form.tags.length > 0 && (
               <div className="tag-list">
@@ -522,25 +605,22 @@ function TaskCreatePage() {
           {/* 담당자 */}
           <div className="form-group">
             <label>담당자</label>
-            <div className="inline-input-wrapper">
-              <input
-                type="text"
-                value={assigneeInput}
-                onChange={(e) => setAssigneeInput(e.target.value)}
-                placeholder="담당자 이름 입력 후 Enter"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddAssignee();
-                  }
-                }}
-              />
-              <button type="button" className="btn btn-secondary" onClick={handleAddAssignee}>
-                추가
-              </button>
+            <div className="assignee-selector">
+              {assignees.filter(a => !form.assignees?.includes(a.name)).map((assignee) => (
+                <button
+                  key={assignee.id}
+                  type="button"
+                  className="assignee-option"
+                  onClick={() => handleAddAssignee(assignee.name)}
+                >
+                  <div className="assignee-avatar">{assignee.name.charAt(0).toUpperCase()}</div>
+                  <span>{assignee.name}</span>
+                </button>
+              ))}
             </div>
             {form.assignees && form.assignees.length > 0 && (
-              <div className="assignee-list">
+              <div className="assignee-list selected">
+                <div className="selected-label">선택된 담당자:</div>
                 {form.assignees.map((name) => (
                   <span key={name} className="assignee-item">
                     👤 {name}

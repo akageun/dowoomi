@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { categoryApi, Category } from '../api/categoryApi';
+import { assigneeApi, Assignee } from '../api/assigneeApi';
+import { tagApi, Tag } from '../api/tagApi';
 import type { CreateTaskRequest, TaskProgress, TaskLifecycle } from '../types/task';
 import './TaskCreateModal.css';
 
@@ -21,6 +24,45 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
   const [assigneeInput, setAssigneeInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 선택 가능한 옵션 목록
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const [categoriesData, assigneesData, tagsData] = await Promise.all([
+          categoryApi.getAllCategories(),
+          assigneeApi.getAllAssignees(),
+          tagApi.getAllTags(),
+        ]);
+        setCategories(categoriesData);
+        setAssignees(assigneesData);
+        setTags(tagsData);
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+      }
+    };
+    loadInitialData();
+  }, []);
+
+  // 태그 검색 필터링
+  useEffect(() => {
+    if (tagInput.trim()) {
+      const filtered = tags.filter(tag => 
+        tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+        !form.tags?.includes(tag.name)
+      );
+      setFilteredTags(filtered);
+    } else {
+      setFilteredTags([]);
+    }
+  }, [tagInput, tags, form.tags]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +83,16 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
     }
   };
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !form.tags?.includes(tagInput.trim())) {
+  const handleAddTag = (tagName?: string) => {
+    const tag = tagName || tagInput.trim();
+    if (tag && !form.tags?.includes(tag)) {
       setForm({
         ...form,
-        tags: [...(form.tags || []), tagInput.trim()],
+        tags: [...(form.tags || []), tag],
       });
       setTagInput('');
+      setShowTagDropdown(false);
+      setFilteredTags([]);
     }
   };
 
@@ -58,11 +103,12 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
     });
   };
 
-  const handleAddAssignee = () => {
-    if (assigneeInput.trim() && !form.assignees?.includes(assigneeInput.trim())) {
+  const handleAddAssignee = (assigneeName?: string) => {
+    const name = assigneeName || assigneeInput.trim();
+    if (name && !form.assignees?.includes(name)) {
       setForm({
         ...form,
-        assignees: [...(form.assignees || []), assigneeInput.trim()],
+        assignees: [...(form.assignees || []), name],
       });
       setAssigneeInput('');
     }
@@ -105,6 +151,21 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
               placeholder="Task 설명"
               rows={3}
             />
+          </div>
+
+          <div className="form-group">
+            <label>카테고리</label>
+            <select
+              value={form.categoryId || ''}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value ? Number(e.target.value) : undefined })}
+            >
+              <option value="">선택 안함</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-row">
@@ -159,8 +220,12 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
               <input
                 type="text"
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="태그 입력 후 Enter"
+                onChange={(e) => {
+                  setTagInput(e.target.value);
+                  setShowTagDropdown(true);
+                }}
+                onFocus={() => setShowTagDropdown(true)}
+                placeholder="태그 검색 또는 새 태그 입력"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -168,9 +233,27 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
                   }
                 }}
               />
-              <button type="button" className="btn btn-secondary" onClick={handleAddTag}>
-                추가
-              </button>
+              {showTagDropdown && (filteredTags.length > 0 || tagInput.trim()) && (
+                <div className="tag-dropdown">
+                  {filteredTags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="tag-dropdown-item"
+                      onClick={() => handleAddTag(tag.name)}
+                    >
+                      🏷️ {tag.name}
+                    </div>
+                  ))}
+                  {tagInput.trim() && !tags.find(t => t.name.toLowerCase() === tagInput.toLowerCase()) && (
+                    <div
+                      className="tag-dropdown-item new-item"
+                      onClick={() => handleAddTag()}
+                    >
+                      + "새 태그: {tagInput}" 만들기
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {form.tags && form.tags.length > 0 && (
               <div className="tag-list">
@@ -187,28 +270,24 @@ function TaskCreateModal({ onClose, onSubmit }: TaskCreateModalProps) {
           {/* 담당자 */}
           <div className="form-group">
             <label>담당자</label>
-            <div className="tag-input-wrapper">
-              <input
-                type="text"
-                value={assigneeInput}
-                onChange={(e) => setAssigneeInput(e.target.value)}
-                placeholder="담당자 이름 입력 후 Enter"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddAssignee();
-                  }
-                }}
-              />
-              <button type="button" className="btn btn-secondary" onClick={handleAddAssignee}>
-                추가
-              </button>
+            <div className="assignee-selector">
+              {assignees.filter(a => !form.assignees?.includes(a.name)).map((assignee) => (
+                <button
+                  key={assignee.id}
+                  type="button"
+                  className="assignee-option-btn"
+                  onClick={() => handleAddAssignee(assignee.name)}
+                >
+                  <div className="assignee-avatar-small">{assignee.name.charAt(0).toUpperCase()}</div>
+                  <span>{assignee.name}</span>
+                </button>
+              ))}
             </div>
             {form.assignees && form.assignees.length > 0 && (
               <div className="assignee-list">
                 {form.assignees.map((name) => (
                   <span key={name} className="assignee-item">
-                    {name}
+                    👤 {name}
                     <button type="button" onClick={() => handleRemoveAssignee(name)}>×</button>
                   </span>
                 ))}

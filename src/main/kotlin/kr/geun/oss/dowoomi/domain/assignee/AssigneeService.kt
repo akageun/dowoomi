@@ -104,4 +104,31 @@ class AssigneeService(
     fun searchByName(name: String): List<AssigneeEntity> {
         return assigneeRepository.findByNameContaining(name)
     }
+
+    /**
+     * ID 목록으로 담당자 조회 (목록 반환)
+     * 많은 수의 ID가 들어오면 100개씩 쪼개서 조회
+     */
+    @Transactional(readOnly = true)
+    fun findByIds(ids: List<Long>): List<AssigneeEntity> {
+        if (ids.isEmpty()) return emptyList()
+        
+        return ids.chunked(100).flatMap { chunk ->
+            assigneeRepository.findAllByIds(chunk)
+        }
+    }
+
+    /**
+     * ID 목록으로 담당자 조회 (Map 반환)
+     * 많은 수의 ID가 들어오면 100개씩 쪼개서 조회
+     * @return Map<담당자ID, AssigneeEntity>
+     */
+    @Transactional(readOnly = true)
+    fun findByIdsAsMap(ids: List<Long>): Map<Long, AssigneeEntity> {
+        if (ids.isEmpty()) return emptyMap()
+        
+        return ids.chunked(100)
+            .flatMap { chunk -> assigneeRepository.findAllByIds(chunk) }
+            .associateBy { it.id!! }
+    }
 }

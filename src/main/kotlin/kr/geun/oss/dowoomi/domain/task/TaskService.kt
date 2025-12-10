@@ -175,8 +175,8 @@ class TaskService(
     lifecycle: TaskLifecycle = TaskLifecycle.ACTIVE,
     startDate: LocalDate? = null,
     endDate: LocalDate? = null,
-    tags: List<String> = emptyList(),
-    assigneeNames: List<String> = emptyList(),
+    tags: List<Long> = emptyList(),
+    assignees: List<Long> = emptyList(),
     links: List<LinkInput> = emptyList()
   ): TasksEntity {
     // 카테고리 존재 확인
@@ -416,8 +416,17 @@ class TaskService(
     val task = findByIdNotDeleted(taskId) ?: return null
     findByIdNotDeleted(dependencyTaskId) ?: return null
 
-    // 순환 참조 방지
-    if (taskId == dependencyTaskId) return null
+    // 자기 자신 참조 방지
+    if (taskId == dependencyTaskId) {
+      throw IllegalArgumentException("Task는 자기 자신을 의존성으로 설정할 수 없습니다. (taskId: $taskId)")
+    }
+
+    // 순환 참조 검사 - dependencyTaskId가 이미 taskId를 의존하고 있는지
+    if (hasCircularDependency(taskId, dependencyTaskId)) {
+      throw IllegalArgumentException(
+        "순환 참조가 발생합니다. Task $dependencyTaskId는 이미 Task $taskId를 직접 또는 간접적으로 의존하고 있습니다."
+      )
+    }
 
     // 이미 존재하는 의존성인지 확인
     if (taskDependencyRepository.existsByTaskIdAndDependencyTaskId(taskId, dependencyTaskId)) {
@@ -446,8 +455,17 @@ class TaskService(
     val task = findByIdNotDeleted(taskId) ?: return null
     findByIdNotDeleted(parentTaskId) ?: return null
 
-    // 순환 참조 방지
-    if (taskId == parentTaskId) return null
+    // 자기 자신 참조 방지
+    if (taskId == parentTaskId) {
+      throw IllegalArgumentException("Task는 자기 자신을 부모로 설정할 수 없습니다. (taskId: $taskId)")
+    }
+
+    // 순환 참조 검사 - parentTaskId가 이미 taskId를 부모로 가지고 있는지
+    if (hasCircularParent(taskId, parentTaskId)) {
+      throw IllegalArgumentException(
+        "순환 참조가 발생합니다. Task $parentTaskId는 이미 Task $taskId를 직접 또는 간접적으로 부모로 가지고 있습니다."
+      )
+    }
 
     // 이미 존재하는 관계인지 확인
     val existing = taskParentRepository.findByTaskId(taskId)
@@ -477,5 +495,115 @@ class TaskService(
     val task = findByIdNotDeleted(taskId) ?: return null
     taskParentRepository.deleteByTaskId(taskId)
     return task
+  }
+
+  // ========== 순환 참조 검증 ==========
+
+  /**
+   * Dependency 순환 참조 검사
+   * taskId가 dependencyTaskId를 의존성으로 추가하려고 할 때,
+   * dependencyTaskId가 이미 taskId를 직접 또는 간접적으로 의존하고 있는지 확인
+   *
+   * @param taskId 의존성을 추가하려는 Task ID
+   * @param dependencyTaskId 의존성으로 추가하려는 Task ID
+   * @return 순환 참조가 있으면 true, 없으면 false
+   */
+  fun hasCircularDependency(taskId: Long, dependencyTaskId: Long): Boolean {
+    val visited = mutableSetOf<Long>()
+    val stack = mutableListOf(dependencyTaskId)
+
+    while (stack.isNotEmpty()) {
+      val currentId = stack.removeAt(stack.size - 1)
+
+      if (currentId == taskId) {
+        return true // 순환 참조 발견
+      }
+
+      if (visited.contains(currentId)) {
+        continue
+      }
+      visited.add(currentId)
+
+      // currentId가 의존하고 있는 모든 Task를 스택에 추가
+      val dependencies = taskDependencyRepository.findDependencyTaskIdsByTaskId(currentId)
+      stack.addAll(dependencies.filter { !visited.contains(it) })
+    }
+
+    return false
+  }
+
+  /**
+   * Parent 순환 참조 검사
+   * taskId가 parentTaskId를 부모로 추가하려고 할 때,
+   * parentTaskId가 이미 taskId를 직접 또는 간접적으로 부모로 가지고 있는지 확인
+   *
+   * @param taskId 부모를 추가하려는 Task ID
+   * @param parentTaskId 부모로 추가하려는 Task ID
+   * @return 순환 참조가 있으면 true, 없으면 false
+   */
+  fun hasCircularParent(taskId: Long, parentTaskId: Long): Boolean {
+    val visited = mutableSetOf<Long>()
+    val stack = mutableListOf(parentTaskId)
+
+    while (stack.isNotEmpty()) {
+      val currentId = stack.removeAt(stack.size - 1)
+
+      if (currentId == taskId) {
+        return true // 순환 참조 발견
+      }
+
+      if (visited.contains(currentId)) {
+        continue
+      }
+      visited.add(currentId)
+
+      // currentId의 모든 부모 Task를 스택에 추가
+      val parents = taskParentRepository.findParentTaskIdsByTaskId(currentId)
+      stack.addAll(parents.filter { !visited.contains(it) })
+    }
+
+    return false
+  }
+
+  /**
+   * 여러 Parent Task들이 모두 유효한지 검증 (순환 참조 체크)
+   *
+   * @param taskId 검증할 Task ID
+   * @param parentTaskIds 추가하려는 부모 Task ID 목록
+   * @throws IllegalArgumentException 순환 참조가 발견되면
+   */
+  fun validateParentTasks(taskId: Long, parentTaskIds: List<Long>) {
+    parentTaskIds.forEach { parentTaskId ->
+      if (taskId == parentTaskId) {
+        throw IllegalArgumentException("Task는 자기 자신을 부모로 설정할 수 없습니다. (taskId: $taskId)")
+      }
+
+      if (hasCircularParent(taskId, parentTaskId)) {
+        throw IllegalArgumentException(
+          "순환 참조가 발생합니다. Task $parentTaskId는 이미 Task $taskId를 직접 또는 간접적으로 부모로 가지고 있습니다."
+        )
+      }
+    }
+  }
+
+  /**
+   * 여러 Dependency Task들이 모두 유효한지 검증 (순환 참조 체크)
+   *
+   * @param taskId 검증할 Task ID
+   * @param dependencyTaskIds 추가하려는 의존성 Task ID 목록
+   * @throws IllegalArgumentException 순환 참조가 발견되면
+   */
+  fun validateDependencyTasks(taskId: Long, dependencyTaskIds: List<Long>) {
+    dependencyTaskIds.forEach { dependencyTaskId ->
+      if (taskId == dependencyTaskId) {
+        throw IllegalArgumentException("Task는 자기 자신을 의존성으로 설정할 수 없습니다. (taskId: $taskId)")
+      }
+
+      if (hasCircularDependency(taskId, dependencyTaskId)) {
+        throw IllegalArgumentException(
+          "순환 참조가 발생합니다. Task $dependencyTaskId는 이미 Task $taskId를 직접 또는 간접적으로 의존하고 있습니다."
+        )
+      }
+    }
   }
 }
