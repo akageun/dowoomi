@@ -160,7 +160,7 @@ export const taskApi = {
    * 태그 추가
    */
   addTag: async (id: number, data: AddTagRequest): Promise<Task> => {
-    const response = await axios.post<ApiResponse<Task>>(`${API_BASE}/${id}/tags`, data);
+    const response = await axios.post<ApiResponse<Task>>(`${API_BASE}/${id}/tags`, { tagName: data.tag });
     return response.data.data!;
   },
 
@@ -178,7 +178,7 @@ export const taskApi = {
    * 담당자 추가
    */
   addAssignee: async (id: number, data: AddAssigneeRequest): Promise<Task> => {
-    const response = await axios.post<ApiResponse<Task>>(`${API_BASE}/${id}/assignees`, data);
+    const response = await axios.post<ApiResponse<Task>>(`${API_BASE}/${id}/assignees`, { assigneeName: data.name });
     return response.data.data!;
   },
 

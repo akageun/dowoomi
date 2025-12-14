@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { taskApi } from '../api/taskApi';
+import { assigneeApi, type Assignee } from '../api/assigneeApi';
+import { categoryApi, type Category } from '../api/categoryApi';
 import type { Task, TaskProgress, UpdateTaskRequest } from '../types/task';
 import { progressLabels, lifecycleLabels } from '../types/task';
 import './TaskDetailPage.css';
@@ -16,9 +18,13 @@ function TaskDetailPage() {
   
   // 태그/담당자 추가 상태
   const [newTag, setNewTag] = useState('');
-  const [newAssignee, setNewAssignee] = useState('');
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<number | ''>('');
   const [newLinkName, setNewLinkName] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
+  
+  // 담당자와 카테고리 목록
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const fetchTask = useCallback(async () => {
     if (!id) return;
@@ -46,7 +52,27 @@ function TaskDetailPage() {
 
   useEffect(() => {
     fetchTask();
+    loadAssignees();
+    loadCategories();
   }, [fetchTask]);
+
+  const loadAssignees = async () => {
+    try {
+      const data = await assigneeApi.getAllAssignees();
+      setAssignees(data);
+    } catch (err) {
+      console.error('Failed to load assignees:', err);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const data = await categoryApi.getAllCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
 
   const handleUpdate = async () => {
     if (!id || !task) return;
@@ -102,10 +128,12 @@ function TaskDetailPage() {
   };
 
   const handleAddAssignee = async () => {
-    if (!id || !newAssignee.trim()) return;
+    if (!id || !selectedAssigneeId) return;
+    const selectedAssignee = assignees.find(a => a.id === selectedAssigneeId);
+    if (!selectedAssignee) return;
     try {
-      await taskApi.addAssignee(Number(id), { name: newAssignee.trim() });
-      setNewAssignee('');
+      await taskApi.addAssignee(Number(id), { name: selectedAssignee.name });
+      setSelectedAssigneeId('');
       await fetchTask();
     } catch (err) {
       console.error('Failed to add assignee:', err);
@@ -203,6 +231,22 @@ function TaskDetailPage() {
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                 rows={4}
               />
+            </div>
+            <div className="form-group">
+              <label>카테고리</label>
+              <select
+                value={editForm.categoryId || ''}
+                onChange={(e) => setEditForm({ 
+                  ...editForm, 
+                  categoryId: e.target.value ? Number(e.target.value) : undefined,
+                  clearCategory: !e.target.value 
+                })}
+              >
+                <option value="">카테고리 없음</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
             <div className="form-row">
               <div className="form-group">
@@ -329,14 +373,18 @@ function TaskDetailPage() {
             ))}
           </div>
           <div className="add-item-form">
-            <input
-              type="text"
-              placeholder="담당자 이름"
-              value={newAssignee}
-              onChange={(e) => setNewAssignee(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddAssignee()}
-            />
-            <button className="btn btn-secondary" onClick={handleAddAssignee}>추가</button>
+            <select
+              value={selectedAssigneeId}
+              onChange={(e) => setSelectedAssigneeId(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">담당자 선택</option>
+              {assignees
+                .filter(assignee => !task.assignees.some(a => a.name === assignee.name))
+                .map(assignee => (
+                  <option key={assignee.id} value={assignee.id}>{assignee.name}</option>
+                ))}
+            </select>
+            <button className="btn btn-secondary" onClick={handleAddAssignee} disabled={!selectedAssigneeId}>추가</button>
           </div>
         </div>
 
