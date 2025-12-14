@@ -1,5 +1,6 @@
 package kr.geun.oss.dowoomi.common.exception
 
+import jakarta.servlet.http.HttpServletRequest
 import kr.geun.oss.dowoomi.common.ApiResponse
 import kr.geun.oss.dowoomi.common.ErrorType
 import org.slf4j.LoggerFactory
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.NoHandlerFoundException
+import java.io.FileNotFoundException
 
 /**
  * 전역 예외 처리 핸들러
@@ -166,12 +168,45 @@ class GlobalExceptionHandler {
     }
 
     /**
+     * 파일을 찾을 수 없음 (static 리소스 등)
+     */
+    @ExceptionHandler(FileNotFoundException::class)
+    fun handleFileNotFoundException(e: FileNotFoundException, request: HttpServletRequest): ResponseEntity<ApiResponse<Unit>>? {
+        val requestUri = request.requestURI
+        
+        // API 요청인 경우에만 404 JSON 응답 반환
+        if (requestUri.startsWith("/api/")) {
+            log.warn("API resource not found: {}", requestUri)
+            return ApiResponse.error<Unit>(ErrorType.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다: $requestUri")
+                .toResponseEntity(HttpStatus.NOT_FOUND)
+        }
+        
+        // static 리소스 요청은 무시 (로그만 남기고 예외를 다시 던지지 않음)
+        log.debug("Static resource not found (ignored): {}", e.message)
+        return null
+    }
+
+    /**
      * 기타 모든 예외 처리
      */
     @ExceptionHandler(Exception::class)
-    fun handleException(e: Exception): ResponseEntity<ApiResponse<Unit>> {
-        log.error("Unexpected error occurred: {}", e.message, e)
-        return ApiResponse.error<Unit>(ErrorType.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.")
-            .toResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+    fun handleException(e: Exception, request: HttpServletRequest): ResponseEntity<ApiResponse<Unit>>? {
+        val requestUri = request.requestURI
+        
+        // FileNotFoundException이 Exception으로 잡힌 경우 처리
+        if (e is FileNotFoundException) {
+            return handleFileNotFoundException(e, request)
+        }
+        
+        // API 요청인 경우에만 500 에러 응답
+        if (requestUri.startsWith("/api/")) {
+            log.error("Unexpected error occurred in API: {}", e.message, e)
+            return ApiResponse.error<Unit>(ErrorType.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.")
+                .toResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+        
+        // static 리소스 관련 에러는 로그만 남기고 무시
+        log.debug("Non-API error (ignored): {} - {}", requestUri, e.message)
+        return null
     }
 }

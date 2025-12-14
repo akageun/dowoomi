@@ -66,16 +66,18 @@ class CategoryService(
         val category = categoryMapper.findById(id)
             ?: throw IllegalArgumentException("Category not found: $id")
 
-        name?.let {
-            if (it != category.name && categoryMapper.existsByName(it)) {
-                throw IllegalArgumentException("Category name already exists: $it")
-            }
-            category.name = it
-        }
-        description?.let { category.description = it }
+        val updatedCategory = category.copy(
+            name = name?.let {
+                if (it != category.name && categoryMapper.existsByName(it)) {
+                    throw IllegalArgumentException("Category name already exists: $it")
+                }
+                it
+            } ?: category.name,
+            description = description ?: category.description
+        )
 
-        categoryMapper.update(category)
-        return category
+        categoryMapper.update(updatedCategory)
+        return updatedCategory
     }
 
     /**

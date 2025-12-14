@@ -60,3 +60,73 @@ data class CreateTaskLinkRequest(
   @field:Size(max = 500, message = "링크 설명은 500자 이하여야 합니다")
   val description: String? = null
 )
+
+/**
+ * Task 수정 요청
+ */
+data class UpdateTaskRequest(
+  @field:Size(min = 1, max = 200, message = "제목은 1자 이상 200자 이하여야 합니다")
+  val title: String? = null,
+
+  @field:Size(max = 5000, message = "설명은 5000자 이하여야 합니다")
+  val description: String? = null,
+
+  val categoryId: Long? = null,
+  val clearCategory: Boolean? = null,
+  val progress: String? = null,
+  val lifecycle: String? = null,
+  val startDate: LocalDate? = null,
+  val endDate: LocalDate? = null
+)
+
+/**
+ * 진행 상태 변경 요청
+ */
+data class ChangeProgressRequest(
+  @field:NotBlank(message = "진행 상태는 필수입니다")
+  val progress: String
+)
+
+/**
+ * 태그 추가 요청
+ */
+data class AddTagRequest(
+  @field:NotBlank(message = "태그 이름은 필수입니다")
+  @field:Size(min = 1, max = 50, message = "태그 이름은 1자 이상 50자 이하여야 합니다")
+  val tagName: String
+)
+
+/**
+ * 담당자 추가 요청
+ */
+data class AddAssigneeRequest(
+  @field:NotBlank(message = "담당자 이름은 필수입니다")
+  @field:Size(min = 1, max = 50, message = "담당자 이름은 1자 이상 50자 이하여야 합니다")
+  val assigneeName: String
+)
+
+/**
+ * 링크 추가 요청
+ */
+data class AddLinkRequest(
+  @field:NotBlank(message = "링크 URL은 필수입니다")
+  val url: String,
+
+  @field:NotBlank(message = "링크 이름은 필수입니다")
+  @field:Size(min = 1, max = 100, message = "링크 이름은 1자 이상 100자 이하여야 합니다")
+  val name: String
+)
+
+/**
+ * 의존성 추가 요청
+ */
+data class AddDependencyRequest(
+  val dependencyTaskId: Long
+)
+
+/**
+ * 부모 Task 추가 요청
+ */
+data class AddParentRequest(
+  val parentTaskId: Long
+)

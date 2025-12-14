@@ -198,14 +198,9 @@ class TaskService(
     val taskId = taskRepository.lastInsertId()
     task = task.copy(id = taskId)
 
-    // 태그 처리 - 없으면 생성
-    tags.forEach { tagName ->
-      var tag = tagRepository.findByName(tagName)
-      if (tag == null) {
-        tagRepository.insert(TagEntity(name = tagName))
-        tag = TagEntity(id = tagRepository.lastInsertId(), name = tagName)
-      }
-      taskTagRepository.insert(TaskTagEntity(taskId = taskId, tagId = tag.id!!))
+    // 태그 처리
+    tags.forEach { tagId ->
+      taskTagRepository.insert(TaskTagEntity(taskId = taskId, tagId = tagId))
     }
 
     // 담당자 처리 - 없으면 생성
@@ -421,10 +416,10 @@ class TaskService(
       throw IllegalArgumentException("Task는 자기 자신을 의존성으로 설정할 수 없습니다. (taskId: $taskId)")
     }
 
-    // 순환 참조 검사 - dependencyTaskId가 이미 taskId를 의존하고 있는지
+    // 순환 참조 검사
     if (hasCircularDependency(taskId, dependencyTaskId)) {
       throw IllegalArgumentException(
-        "순환 참조가 발생합니다. Task $dependencyTaskId는 이미 Task $taskId를 직접 또는 간접적으로 의존하고 있습니다."
+        "순환 참조가 발생합니다. Task $dependencyTaskId 는 이미 Task $taskId 를 직접 또는 간접적으로 의존하고 있습니다."
       )
     }
 
@@ -460,10 +455,10 @@ class TaskService(
       throw IllegalArgumentException("Task는 자기 자신을 부모로 설정할 수 없습니다. (taskId: $taskId)")
     }
 
-    // 순환 참조 검사 - parentTaskId가 이미 taskId를 부모로 가지고 있는지
+    // 순환 참조 검사
     if (hasCircularParent(taskId, parentTaskId)) {
       throw IllegalArgumentException(
-        "순환 참조가 발생합니다. Task $parentTaskId는 이미 Task $taskId를 직접 또는 간접적으로 부모로 가지고 있습니다."
+        "순환 참조가 발생합니다. Task $parentTaskId 는 이미 Task $taskId 를 직접 또는 간접적으로 부모로 가지고 있습니다."
       )
     }
 
@@ -580,7 +575,7 @@ class TaskService(
 
       if (hasCircularParent(taskId, parentTaskId)) {
         throw IllegalArgumentException(
-          "순환 참조가 발생합니다. Task $parentTaskId는 이미 Task $taskId를 직접 또는 간접적으로 부모로 가지고 있습니다."
+          "순환 참조가 발생합니다. Task $parentTaskId 는 이미 Task $taskId 를 직접 또는 간접적으로 부모로 가지고 있습니다."
         )
       }
     }
@@ -601,7 +596,7 @@ class TaskService(
 
       if (hasCircularDependency(taskId, dependencyTaskId)) {
         throw IllegalArgumentException(
-          "순환 참조가 발생합니다. Task $dependencyTaskId는 이미 Task $taskId를 직접 또는 간접적으로 의존하고 있습니다."
+          "순환 참조가 발생합니다. Task $dependencyTaskId 는 이미 Task $taskId 를 직접 또는 간접적으로 의존하고 있습니다."
         )
       }
     }
