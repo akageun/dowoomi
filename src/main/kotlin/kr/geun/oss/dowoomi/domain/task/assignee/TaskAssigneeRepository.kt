@@ -29,4 +29,21 @@ interface TaskAssigneeRepository {
     
     @Select("SELECT member_id FROM task_assignees WHERE task_id = #{taskId}")
     fun findMemberIdsByTaskId(@Param("taskId") taskId: Long): List<Long>
+
+    @Select("""
+        <script>
+        SELECT
+            ta.task_id as taskId,
+            ta.member_id as memberId,
+            a.name as memberName,
+            a.memo as memberMemo
+        FROM task_assignees ta
+        INNER JOIN assignees a ON ta.member_id = a.id
+        WHERE ta.task_id IN
+        <foreach item='taskId' collection='taskIds' open='(' separator=',' close=')'>
+            #{taskId}
+        </foreach>
+        </script>
+    """)
+    fun findAssigneesByTaskIds(@Param("taskIds") taskIds: List<Long>): List<TaskWithAssigneeEntity>
 }

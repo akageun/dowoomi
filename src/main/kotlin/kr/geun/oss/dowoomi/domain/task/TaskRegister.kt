@@ -5,7 +5,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class TaskRegister(
-  private val taskRepository: TaskRepository,
+    private val taskMapper: TaskMapper,
 ) {
 
   @Transactional

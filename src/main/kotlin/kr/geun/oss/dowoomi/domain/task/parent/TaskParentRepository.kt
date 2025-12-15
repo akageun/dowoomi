@@ -33,4 +33,20 @@ interface TaskParentRepository {
     
     @Select("SELECT parent_task_id FROM task_parents WHERE task_id = #{taskId}")
     fun findParentTaskIdsByTaskId(@Param("taskId") taskId: Long): List<Long>
+
+    @Select("""
+        <script>
+        SELECT
+            tp.task_id as taskId,
+            tp.parent_task_id as parentTaskId,
+            t.title as parentTitle
+        FROM task_parents tp
+        INNER JOIN tasks t ON tp.parent_task_id = t.id
+        WHERE tp.task_id IN
+        <foreach item='taskId' collection='taskIds' open='(' separator=',' close=')'>
+            #{taskId}
+        </foreach>
+        </script>
+    """)
+    fun findParentsByTaskIds(@Param("taskIds") taskIds: List<Long>): List<TaskWithParentEntity>
 }

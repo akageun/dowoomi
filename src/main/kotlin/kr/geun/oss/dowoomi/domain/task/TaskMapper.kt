@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.*
 import java.time.LocalDate
 
 @Mapper
-interface TaskRepository {
+interface TaskMapper {
 
     /**
      * ID로 Task 조회
@@ -26,6 +26,163 @@ interface TaskRepository {
         ]
     )
     fun findById(@Param("id") id: Long): TasksEntity?
+
+    /**
+     * TaskProjection 조회 (카테고리 정보 포함)
+     */
+    @Select("""
+        SELECT 
+            t.id as task_id,
+            t.title,
+            t.description,
+            t.status_progress,
+            t.status_lifecycle,
+            t.start_date,
+            t.end_date,
+            t.created_at,
+            t.updated_at,
+            c.id as category_id,
+            c.name as category_name,
+            c.description as category_description,
+            c.created_at as category_created_at,
+            c.updated_at as category_updated_at
+        FROM tasks t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.id = #{id}
+    """)
+    @Results(
+        id = "TaskProjectionResultMap",
+        value = [
+            Result(property = "taskId", column = "task_id", id = true),
+            Result(property = "title", column = "title"),
+            Result(property = "description", column = "description"),
+            Result(property = "statusProgress", column = "status_progress"),
+            Result(property = "statusLifecycle", column = "status_lifecycle"),
+            Result(property = "startDate", column = "start_date"),
+            Result(property = "endDate", column = "end_date"),
+            Result(property = "createdAt", column = "created_at"),
+            Result(property = "updatedAt", column = "updated_at"),
+            Result(property = "category.categoryId", column = "category_id"),
+            Result(property = "category.name", column = "category_name"),
+            Result(property = "category.description", column = "category_description"),
+            Result(property = "category.createdAt", column = "category_created_at"),
+            Result(property = "category.updatedAt", column = "category_updated_at")
+        ]
+    )
+    fun findProjectionById(@Param("id") id: Long): TaskProjection?
+
+    /**
+     * 전체 TaskProjection 조회 (카테고리 정보 포함, 동적 검색 조건)
+     */
+    @Select("""
+        <script>
+        SELECT 
+            t.id as task_id,
+            t.title,
+            t.description,
+            t.status_progress,
+            t.status_lifecycle,
+            t.start_date,
+            t.end_date,
+            t.created_at,
+            t.updated_at,
+            c.id as category_id,
+            c.name as category_name,
+            c.description as category_description,
+            c.created_at as category_created_at,
+            c.updated_at as category_updated_at
+        FROM tasks t
+        LEFT JOIN categories c ON t.category_id = c.id
+        <where>
+            <if test='param.categoryId != null'>
+                AND t.category_id = #{param.categoryId}
+            </if>
+            <if test='param.statusProgress != null'>
+                AND t.status_progress = #{param.statusProgress}
+            </if>
+            <if test='param.statusLifecycle != null'>
+                AND t.status_lifecycle = #{param.statusLifecycle}
+            </if>
+            <if test='param.startDateFrom != null'>
+                AND t.start_date >= #{param.startDateFrom}
+            </if>
+            <if test='param.startDateTo != null'>
+                AND t.start_date <= #{param.startDateTo}
+            </if>
+            <if test='param.endDateFrom != null'>
+                AND t.end_date >= #{param.endDateFrom}
+            </if>
+            <if test='param.endDateTo != null'>
+                AND t.end_date <= #{param.endDateTo}
+            </if>
+            <if test='param.keyword != null and param.keyword != ""'>
+                AND LOWER(t.title) LIKE '%' || LOWER(#{param.keyword}) || '%'
+            </if>
+        </where>
+        ORDER BY t.created_at DESC
+        </script>
+    """)
+    @ResultMap("TaskProjectionResultMap")
+    fun findAllProjections(@Param("param") param: TaskFindAllParam): List<TaskProjection>
+
+    /**
+     * ID 목록으로 TaskProjection 조회 (카테고리 정보 포함)
+     */
+    @Select("""
+        <script>
+        SELECT 
+            t.id as task_id,
+            t.title,
+            t.description,
+            t.status_progress,
+            t.status_lifecycle,
+            t.start_date,
+            t.end_date,
+            t.created_at,
+            t.updated_at,
+            c.id as category_id,
+            c.name as category_name,
+            c.description as category_description,
+            c.created_at as category_created_at,
+            c.updated_at as category_updated_at
+        FROM tasks t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.id IN
+        <foreach collection='ids' item='id' open='(' separator=',' close=')'>
+            #{id}
+        </foreach>
+        ORDER BY t.created_at DESC
+        </script>
+    """)
+    @ResultMap("TaskProjectionResultMap")
+    fun findProjectionsByIds(@Param("ids") ids: List<Long>): List<TaskProjection>
+
+    /**
+     * Active TaskProjection 조회 (카테고리 정보 포함)
+     */
+    @Select("""
+        SELECT 
+            t.id as task_id,
+            t.title,
+            t.description,
+            t.status_progress,
+            t.status_lifecycle,
+            t.start_date,
+            t.end_date,
+            t.created_at,
+            t.updated_at,
+            c.id as category_id,
+            c.name as category_name,
+            c.description as category_description,
+            c.created_at as category_created_at,
+            c.updated_at as category_updated_at
+        FROM tasks t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.status_lifecycle = 'active'
+        ORDER BY t.created_at DESC
+    """)
+    @ResultMap("TaskProjectionResultMap")
+    fun findAllActiveProjections(): List<TaskProjection>
 
     /**
      * 전체 Task 조회
@@ -118,8 +275,8 @@ interface TaskRepository {
      * 특정 월의 Task 조회 (간트 차트용)
      */
     @Select("""
-        SELECT * FROM tasks 
-        WHERE strftime('%Y-%m', start_date) = #{yearMonth} 
+        SELECT * FROM tasks
+        WHERE strftime('%Y-%m', start_date) = #{yearMonth}
            OR strftime('%Y-%m', end_date) = #{yearMonth}
         ORDER BY start_date
     """)
@@ -133,12 +290,14 @@ interface TaskRepository {
     @ResultMap("TaskResultMap")
     fun findAllActiveTasks(): List<TasksEntity>
 
+
+
     /**
      * 이번 주에 완료한 Task 조회
      */
     @Select("""
-        SELECT * FROM tasks 
-        WHERE status_progress = 'done' 
+        SELECT * FROM tasks
+        WHERE status_progress = 'done'
           AND date(updated_at) >= date('now', 'weekday 0', '-7 days')
         ORDER BY updated_at DESC
     """)
@@ -149,7 +308,7 @@ interface TaskRepository {
      * 마감일이 가까운 Task 조회 (D-Day)
      */
     @Select("""
-        SELECT * FROM tasks 
+        SELECT * FROM tasks
         WHERE status_lifecycle = 'active'
           AND status_progress != 'done'
           AND end_date IS NOT NULL
@@ -163,7 +322,7 @@ interface TaskRepository {
      * 기한 초과(Overdue) Task 조회
      */
     @Select("""
-        SELECT * FROM tasks 
+        SELECT * FROM tasks
         WHERE status_lifecycle = 'active'
           AND status_progress != 'done'
           AND end_date IS NOT NULL
@@ -177,7 +336,7 @@ interface TaskRepository {
      * 오늘 집중해야 할 Task
      */
     @Select("""
-        SELECT * FROM tasks 
+        SELECT * FROM tasks
         WHERE status_lifecycle = 'active'
           AND status_progress != 'done'
           AND (

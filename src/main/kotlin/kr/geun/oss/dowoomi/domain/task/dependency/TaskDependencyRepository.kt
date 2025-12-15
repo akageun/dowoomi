@@ -29,4 +29,20 @@ interface TaskDependencyRepository {
     
     @Select("SELECT dependency_task_id FROM task_dependencies WHERE task_id = #{taskId}")
     fun findDependencyTaskIdsByTaskId(@Param("taskId") taskId: Long): List<Long>
+
+    @Select("""
+        <script>
+        SELECT
+            td.task_id as taskId,
+            td.dependency_task_id as dependencyTaskId,
+            t.title as dependencyTitle
+        FROM task_dependencies td
+        INNER JOIN tasks t ON td.dependency_task_id = t.id
+        WHERE td.task_id IN
+        <foreach item='taskId' collection='taskIds' open='(' separator=',' close=')'>
+            #{taskId}
+        </foreach>
+        </script>
+    """)
+    fun findDependenciesByTaskIds(@Param("taskIds") taskIds: List<Long>): List<TaskWithDependencyEntity>
 }

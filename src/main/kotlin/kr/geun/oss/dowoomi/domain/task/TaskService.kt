@@ -11,7 +11,7 @@ import kr.geun.oss.dowoomi.domain.task.link.TaskLinkRepository
 import kr.geun.oss.dowoomi.domain.task.parent.TaskParentEntity
 import kr.geun.oss.dowoomi.domain.task.parent.TaskParentRepository
 import kr.geun.oss.dowoomi.domain.task.tag.TaskTagEntity
-import kr.geun.oss.dowoomi.domain.task.tag.TaskTagRepository
+import kr.geun.oss.dowoomi.domain.task.tag.TaskTagMapper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -19,31 +19,31 @@ import java.time.LocalDate
 @Service
 @Transactional(readOnly = true)
 class TaskService(
-  private val taskRepository: TaskRepository,
-  private val categoryMapper: CategoryMapper,
-  private val tagRepository: TagRepository,
-  private val taskLinkRepository: TaskLinkRepository,
-  private val taskTagRepository: TaskTagRepository,
-  private val taskAssigneeRepository: TaskAssigneeRepository,
-  private val taskDependencyRepository: TaskDependencyRepository,
-  private val taskParentRepository: TaskParentRepository
+    private val taskMapper: TaskMapper,
+    private val categoryMapper: CategoryMapper,
+    private val tagRepository: TagRepository,
+    private val taskLinkRepository: TaskLinkRepository,
+    private val taskTagMapper: TaskTagMapper,
+    private val taskAssigneeRepository: TaskAssigneeRepository,
+    private val taskDependencyRepository: TaskDependencyRepository,
+    private val taskParentRepository: TaskParentRepository
 ) {
 
   /**
    * 모든 Active Task 조회
    */
-  fun findAllActiveTasks(): List<TasksEntity> = taskRepository.findAllActiveTasks()
+  fun findAllActiveTasks(): List<TasksEntity> = taskMapper.findAllActiveTasks()
 
   /**
    * ID로 Task 조회
    */
-  fun findById(id: Long): TasksEntity? = taskRepository.findById(id)
+  fun findById(id: Long): TasksEntity? = taskMapper.findById(id)
 
   /**
    * ID로 Task 조회 (삭제되지 않은 것만)
    */
   fun findByIdNotDeleted(id: Long): TasksEntity? {
-    val task = taskRepository.findById(id)
+    val task = taskMapper.findById(id)
     return if (task != null && !task.isDeleted()) task else null
   }
 
@@ -51,63 +51,63 @@ class TaskService(
    * 카테고리별 Task 조회
    */
   fun findByCategoryId(categoryId: Long): List<TasksEntity> =
-    taskRepository.findByCategoryId(categoryId)
+    taskMapper.findByCategoryId(categoryId)
 
   /**
    * 진행 상태별 Task 조회
    */
   fun findByProgress(progress: TaskProgress): List<TasksEntity> =
-    taskRepository.findByStatusProgress(progress.value)
+    taskMapper.findByStatusProgress(progress.value)
 
   /**
    * 생명주기 상태별 Task 조회
    */
   fun findByLifecycle(lifecycle: TaskLifecycle): List<TasksEntity> =
-    taskRepository.findByStatusLifecycle(lifecycle.value)
+    taskMapper.findByStatusLifecycle(lifecycle.value)
 
   /**
    * 기간 범위로 Task 조회
    */
   fun findByDateRange(startDate: LocalDate, endDate: LocalDate): List<TasksEntity> =
-    taskRepository.findByStartDateBetween(startDate, endDate)
+    taskMapper.findByStartDateBetween(startDate, endDate)
 
   /**
    * 특정 월의 Task 조회 (YYYY-MM 형식)
    */
   fun findByYearMonth(yearMonth: String): List<TasksEntity> =
-    taskRepository.findByYearMonth(yearMonth)
+    taskMapper.findByYearMonth(yearMonth)
 
   /**
    * 마감일이 가까운 Task 조회
    */
   fun findUpcomingDeadlines(days: Int = 7): List<TasksEntity> =
-    taskRepository.findUpcomingDeadlines(days)
+    taskMapper.findUpcomingDeadlines(days)
 
   /**
    * 기한 초과 Task 조회
    */
-  fun findOverdueTasks(): List<TasksEntity> = taskRepository.findOverdueTasks()
+  fun findOverdueTasks(): List<TasksEntity> = taskMapper.findOverdueTasks()
 
   /**
    * 오늘 집중해야 할 Task
    */
-  fun findTodayFocusTasks(): List<TasksEntity> = taskRepository.findTodayFocusTasks()
+  fun findTodayFocusTasks(): List<TasksEntity> = taskMapper.findTodayFocusTasks()
 
   /**
    * 바로 시작 가능한 Task
    */
-  fun findReadyToStartTasks(): List<TasksEntity> = taskRepository.findReadyToStartTasks()
+  fun findReadyToStartTasks(): List<TasksEntity> = taskMapper.findReadyToStartTasks()
 
   /**
    * 이번 주 완료한 Task
    */
-  fun findCompletedThisWeek(): List<TasksEntity> = taskRepository.findCompletedThisWeek()
+  fun findCompletedThisWeek(): List<TasksEntity> = taskMapper.findCompletedThisWeek()
 
   /**
    * 제목으로 Task 검색 (LIKE 검색)
    */
   fun searchByTitle(keyword: String, limit: Int = 20): List<TasksEntity> =
-    taskRepository.searchByTitle(keyword, limit)
+    taskMapper.searchByTitle(keyword, limit)
 
   // ========== 관계 데이터 조회 ==========
 
@@ -122,7 +122,7 @@ class TaskService(
    * Task의 태그 목록 조회
    */
   fun getTaskTags(taskId: Long): List<String> {
-    val tagIds = taskTagRepository.findTagIdsByTaskId(taskId)
+    val tagIds = taskTagMapper.findTagIdsByTaskId(taskId)
     if (tagIds.isEmpty()) return emptyList()
     return tagRepository.findAllByIds(tagIds).map { it.name }
   }
@@ -149,7 +149,7 @@ class TaskService(
   fun getTaskDependencies(taskId: Long): List<Pair<Long, String>> {
     val dependencyTaskIds = taskDependencyRepository.findDependencyTaskIdsByTaskId(taskId)
     if (dependencyTaskIds.isEmpty()) return emptyList()
-    return taskRepository.findAllByIds(dependencyTaskIds).map { it.id!! to it.title }
+    return taskMapper.findAllByIds(dependencyTaskIds).map { it.id!! to it.title }
   }
 
   /**
@@ -158,7 +158,7 @@ class TaskService(
   fun getTaskParents(taskId: Long): List<Pair<Long, String>> {
     val parentTaskIds = taskParentRepository.findParentTaskIdsByTaskId(taskId)
     return parentTaskIds.mapNotNull { parentTaskId ->
-      val parentTask = taskRepository.findById(parentTaskId)
+      val parentTask = taskMapper.findById(parentTaskId)
       parentTask?.let { it.id!! to it.title }
     }
   }
@@ -194,13 +194,13 @@ class TaskService(
       endDate = endDate
     )
 
-    taskRepository.insert(task)
-    val taskId = taskRepository.lastInsertId()
+    taskMapper.insert(task)
+    val taskId = taskMapper.lastInsertId()
     task = task.copy(id = taskId)
 
     // 태그 처리
     tags.forEach { tagId ->
-      taskTagRepository.insert(TaskTagEntity(taskId = taskId, tagId = tagId))
+      taskTagMapper.insert(TaskTagEntity(taskId = taskId, tagId = tagId))
     }
 
     // 담당자 처리 - 없으면 생성
@@ -271,7 +271,7 @@ class TaskService(
       }
     }
 
-    taskRepository.update(task)
+    taskMapper.update(task)
     return task
   }
 
@@ -282,7 +282,7 @@ class TaskService(
   fun changeProgress(id: Long, progress: TaskProgress): TasksEntity? {
     val task = findByIdNotDeleted(id) ?: return null
     task.setProgress(progress)
-    taskRepository.update(task)
+    taskMapper.update(task)
     return task
   }
 
@@ -291,9 +291,9 @@ class TaskService(
    */
   @Transactional
   fun softDelete(id: Long): Boolean {
-    val task = taskRepository.findById(id) ?: return false
+    val task = taskMapper.findById(id) ?: return false
     task.softDelete()
-    taskRepository.update(task)
+    taskMapper.update(task)
     return true
   }
 
@@ -302,16 +302,16 @@ class TaskService(
    */
   @Transactional
   fun hardDelete(id: Long): Boolean {
-    if (!taskRepository.existsById(id)) return false
+    if (!taskMapper.existsById(id)) return false
 
     // 관계 데이터 먼저 삭제
-    taskTagRepository.deleteByTaskId(id)
+    taskTagMapper.clearByTaskId(id)
     taskAssigneeRepository.deleteByTaskId(id)
     taskLinkRepository.deleteByTaskId(id)
     taskDependencyRepository.deleteByTaskId(id)
     taskParentRepository.deleteByTaskId(id)
 
-    taskRepository.deleteById(id)
+    taskMapper.deleteById(id)
     return true
   }
 
@@ -329,11 +329,11 @@ class TaskService(
     }
 
     // 이미 있는 태그인지 확인
-    if (taskTagRepository.existsByTaskIdAndTagId(taskId, tag.id!!)) {
+    if (taskTagMapper.existsByTaskIdAndTagId(taskId, tag.id!!)) {
       return task
     }
 
-    taskTagRepository.insert(TaskTagEntity(taskId = taskId, tagId = tag.id!!))
+    taskTagMapper.insert(TaskTagEntity(taskId = taskId, tagId = tag.id!!))
     return task
   }
 
@@ -345,7 +345,7 @@ class TaskService(
     val task = findByIdNotDeleted(taskId) ?: return null
     val tag = tagRepository.findByName(tagName) ?: return task
 
-    taskTagRepository.deleteByTaskIdAndTagId(taskId, tag.id!!)
+    taskTagMapper.deleteByTaskIdAndTagId(taskId, tag.id!!)
     return task
   }
 
